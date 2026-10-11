@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,7 +27,7 @@ fun DemoContentScreen(onResult: (CircleSearchResult) -> Unit) {
                 modifier = Modifier.fillMaxSize().safeContentPadding().padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Circle To Search", style = MaterialTheme.typography.h4)
+                Text("Circle To Search", style = MaterialTheme.typography.headlineMedium)
                 Text("Circle any part of this screen, then search its text or image.")
 
                 Card(modifier = Modifier.padding(vertical = 8.dp)) {

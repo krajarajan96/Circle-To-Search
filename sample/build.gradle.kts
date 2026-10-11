@@ -33,7 +33,7 @@ kotlin {
             implementation(project(":circletosearch"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
-            implementation(libs.compose.material)
+            implementation(compose.material3)
             implementation(libs.compose.ui)
         }
     }

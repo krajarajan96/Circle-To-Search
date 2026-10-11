@@ -16,18 +16,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +58,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
@@ -105,13 +112,35 @@ fun SelectableContent(
             content()
         }
 
-        if (inSearchMode) {
+        AnimatedVisibility(
+            visible = inSearchMode,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
             Box(modifier = Modifier.fillMaxSize().background(config.colors.scrimBrush))
         }
 
-        if (mode is SelectionMode.Selecting) {
+        AnimatedVisibility(
+            visible = mode is SelectionMode.Selecting,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
             // Extra darkening while actively drawing so the selection stroke stands out.
-            Box(modifier = Modifier.fillMaxSize().background(config.colors.selectingDarkenColor))
+            Box(modifier = Modifier.fillMaxSize().background(config.colors.selectingDarkenBrush))
+        }
+
+        AnimatedVisibility(
+            visible = inSearchMode,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .background(config.colors.bottomGlowBrush),
+            )
         }
 
         if (mode is SelectionMode.Selecting) {
@@ -148,7 +177,7 @@ fun SelectableContent(
                 onClick = { controller.startSelecting() },
                 modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(24.dp),
             ) {
-                Text("⌕")
+                Icon(Icons.Default.Search, contentDescription = config.strings.searchTitle)
             }
         }
 
@@ -158,7 +187,7 @@ fun SelectableContent(
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            SearchModeBottomBar(config)
+            config.bottomBar?.invoke() ?: SearchModeBottomBar(config)
         }
 
         AnimatedVisibility(
@@ -247,17 +276,17 @@ private fun SearchModeTopBar(config: CircleSearchConfig, onClose: () -> Unit, mo
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(32.dp)
-                .background(Color.Black.copy(alpha = 0.25f), CircleShape)
+                .background(config.colors.topBarCloseBackgroundColor, CircleShape)
                 .clickable(onClick = onClose),
             contentAlignment = Alignment.Center,
         ) {
-            CloseIcon(tint = Color.White, modifier = Modifier.size(8.dp))
+            CloseIcon(tint = config.colors.contentColor, modifier = Modifier.size(18.dp))
         }
         Text(
             config.strings.searchTitle,
-            color = Color.White,
+            color = config.colors.contentColor,
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.h6,
+            style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.align(Alignment.Center),
         )
     }
@@ -269,7 +298,7 @@ private fun SearchModeBottomBar(config: CircleSearchConfig, modifier: Modifier =
         modifier = modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
         shape = CircleShape,
         color = config.colors.searchBarColor,
-        elevation = 6.dp,
+        shadowElevation = 6.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
@@ -277,76 +306,17 @@ private fun SearchModeBottomBar(config: CircleSearchConfig, modifier: Modifier =
         ) {
             Text(
                 config.strings.bottomBarHint,
-                color = Color.White,
+                color = config.colors.contentColor,
                 modifier = Modifier.weight(1f),
             )
-            MicIcon(tint = Color.White, modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.Mic, contentDescription = null, tint = config.colors.contentColor, modifier = Modifier.size(22.dp))
         }
     }
 }
 
-/** Drawn rather than an emoji, so it renders identically (and legibly) on both platforms. */
 @Composable
 private fun CloseIcon(tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val strokeWidth = size.minDimension * 0.14f
-        drawLine(
-            color = tint,
-            start = Offset(0f, 0f),
-            end = Offset(size.width, size.height),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = tint,
-            start = Offset(size.width, 0f),
-            end = Offset(0f, size.height),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round,
-        )
-    }
-}
-
-/** Drawn rather than an emoji, so it renders identically (and legibly) on both platforms. */
-@Composable
-private fun MicIcon(tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val capsuleWidth = size.width * 0.34f
-        val capsuleHeight = size.height * 0.55f
-        val capsuleLeft = (size.width - capsuleWidth) / 2f
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(capsuleLeft, 0f),
-            size = androidx.compose.ui.geometry.Size(capsuleWidth, capsuleHeight),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleWidth / 2f, capsuleWidth / 2f),
-        )
-        val standTop = capsuleHeight * 0.75f
-        val standWidth = size.width * 0.68f
-        drawArc(
-            color = tint,
-            startAngle = 0f,
-            sweepAngle = 180f,
-            useCenter = false,
-            topLeft = Offset((size.width - standWidth) / 2f, standTop - standWidth / 2f),
-            size = androidx.compose.ui.geometry.Size(standWidth, standWidth),
-            style = Stroke(width = size.width * 0.09f, cap = StrokeCap.Round),
-        )
-        val stemBottom = standTop + standWidth / 2f
-        drawLine(
-            color = tint,
-            start = Offset(size.width / 2f, stemBottom),
-            end = Offset(size.width / 2f, size.height),
-            strokeWidth = size.width * 0.09f,
-            cap = StrokeCap.Round,
-        )
-        drawLine(
-            color = tint,
-            start = Offset(size.width * 0.25f, size.height),
-            end = Offset(size.width * 0.75f, size.height),
-            strokeWidth = size.width * 0.09f,
-            cap = StrokeCap.Round,
-        )
-    }
+    Icon(Icons.Default.Close, contentDescription = null, tint = tint, modifier = modifier)
 }
 
 @Composable
@@ -361,7 +331,8 @@ private fun SelectionResultPanel(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().navigationBarsPadding(),
-        elevation = 8.dp,
+        color = config.colors.resultPanelColor.takeOrElse { MaterialTheme.colorScheme.surface },
+        shadowElevation = 8.dp,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -376,7 +347,7 @@ private fun SelectionResultPanel(
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CloseIcon(tint = Color.White, modifier = Modifier.size(7.dp))
+                    CloseIcon(tint = config.colors.contentColor, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(modifier = Modifier.size(8.dp))

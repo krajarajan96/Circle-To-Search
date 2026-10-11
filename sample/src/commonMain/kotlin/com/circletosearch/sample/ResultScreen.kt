@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -24,17 +24,17 @@ fun ResultScreen(result: CircleSearchResult, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().safeContentPadding().padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Search result", style = MaterialTheme.typography.h4)
+            Text("Search result", style = MaterialTheme.typography.headlineMedium)
 
             when (result) {
                 is CircleSearchResult.TextQuery -> {
-                    Text("Recognized text:", style = MaterialTheme.typography.subtitle1)
+                    Text("Recognized text:", style = MaterialTheme.typography.titleMedium)
                     Text(result.text.ifBlank { "(no text recognized)" })
                     Image(bitmap = result.image, contentDescription = null, modifier = Modifier.size(120.dp))
                 }
 
                 is CircleSearchResult.ImageQuery -> {
-                    Text("Selected image:", style = MaterialTheme.typography.subtitle1)
+                    Text("Selected image:", style = MaterialTheme.typography.titleMedium)
                     Image(bitmap = result.image, contentDescription = null, modifier = Modifier.size(200.dp))
                 }
             }
