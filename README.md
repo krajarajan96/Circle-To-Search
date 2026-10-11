@@ -5,6 +5,16 @@ to search" gesture: users draw a lasso over on-screen content, then search eithe
 text (on-device OCR) or the raw cropped image. Can be dropped onto any screen, with fully
 customizable colors/tints, animated chrome, strings, OCR backend, and an overridable bottom bar.
 
+## Demo
+
+| Idle | Selecting | Result |
+| --- | --- | --- |
+| ![Idle screen](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/1.png) | ![Selecting mode](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/2.png) | ![Result panel](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/4.png) |
+
+Full walkthrough:
+
+https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/3.webm
+
 ## Install
 
 Via [JitPack](https://jitpack.io/#krajarajan96/Circle-To-Search):
@@ -24,6 +34,19 @@ dependencies {
     implementation("com.github.krajarajan96:Circle-To-Search:v0.1.0")
 }
 ```
+
+### iOS
+
+Because this is a Kotlin Multiplatform library, the JitPack coordinate above works out of the box
+**if your iOS app is itself a Kotlin Multiplatform Gradle project** (i.e. it has `iosArm64`/
+`iosSimulatorArm64` targets and embeds a Kotlin/Native framework, like this repo's own `sample`
+module does) — Gradle resolves the `iosArm64`/`iosSimulatorArm64` klibs from JitPack the same way
+it resolves the Android `.aar`. Just add the dependency to your shared/common source set as above,
+then build your `iosApp` framework normally (see [Building](#building) below for the pattern).
+
+A plain Swift/Xcode-only app (no Gradle, no KMP) can't consume a Maven artifact directly — that
+would require a prebuilt `.xcframework` distributed via CocoaPods or Swift Package Manager, which
+this library doesn't publish yet. If you need that path, open an issue.
 
 ## Usage
 
