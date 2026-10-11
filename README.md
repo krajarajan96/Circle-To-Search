@@ -5,6 +5,26 @@ to search" gesture: users draw a lasso over on-screen content, then search eithe
 text (on-device OCR) or the raw cropped image. Can be dropped onto any screen, with fully
 customizable colors/tints, animated chrome, strings, OCR backend, and an overridable bottom bar.
 
+## Install
+
+Via [JitPack](https://jitpack.io/#krajarajan96/Circle-To-Search):
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        maven(url = "https://jitpack.io")
+    }
+}
+```
+
+```kotlin
+// your module's build.gradle.kts
+dependencies {
+    implementation("com.github.krajarajan96:Circle-To-Search:v0.1.0")
+}
+```
+
 ## Usage
 
 ```kotlin
