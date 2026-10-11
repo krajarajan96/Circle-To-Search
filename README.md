@@ -13,7 +13,7 @@ customizable colors/tints, animated chrome, strings, OCR backend, and an overrid
 
 Full walkthrough:
 
-https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/3.webm
+<video src="https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/3.webm" controls width="360"></video>
 
 ## Install
 
