@@ -9,11 +9,7 @@ customizable colors/tints, animated chrome, strings, OCR backend, and an overrid
 
 | Idle | Selecting | Result |
 | --- | --- | --- |
-| ![Idle screen](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/1.png) | ![Selecting mode](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/2.png) | ![Result panel](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/4.png) |
-
-Full walkthrough:
-
-<video src="https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/3.webm" controls width="360"></video>
+| ![Idle screen](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/1.png) | ![Selecting mode](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/circle.png) | ![Result panel](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/4.png) |
 
 ## Install
 
