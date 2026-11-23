@@ -9,7 +9,7 @@ customizable colors/tints, animated chrome, strings, OCR backend, and an overrid
 
 | Idle | Selecting | Result |
 | --- | --- | --- |
-| ![Idle screen](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/1.png) | ![Selecting mode](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/circle.png) | ![Result panel](https://github.com/krajarajan96/Circle-To-Search/releases/download/v0.1.0/4.png) |
+| ![Idle screen](docs/screenshots/idle.png) | ![Selecting mode](docs/screenshots/selecting.png) | ![Result panel](docs/screenshots/result.png) |
 
 ## Install
 
@@ -79,6 +79,22 @@ SelectableContent(
     ),
 ) { /* ... */ }
 ```
+
+#### Config options
+
+| `CircleSearchConfig` field | Default | Purpose |
+| --- | --- | --- |
+| `ocrProvider` | `OcrProviders.default()` | Text-recognition backend (ML Kit / Vision), or `OcrProviders.disabled()`. |
+| `colors` | `CircleSearchColors.defaults()` | Scrim, bars, glow, stroke, panel and FAB (`fabContainerColor`, `fabContentColor`) colors. |
+| `strings` | `CircleSearchStrings.defaults()` | All copy, including `searchButton` and accessibility descriptions. |
+| `minSelectionSizePx` | `20` | Smallest selection that counts as a deliberate circle. |
+| `bottomBar` | `null` | Replace the default bottom bar with your own composable. |
+| `showChrome` | `true` | `false` when the host draws `SearchModeTopBar` / `SearchModeBottomBar` itself. |
+| `showFab` | `true` | `false` when the host launches search via `SelectionController.startSelecting()`. |
+| `enableImageSearch` | `true` | `false` shows a single text-search button and never emits `ImageQuery`. |
+| `resetOnEmptyText` | `false` | Close back to idle when OCR finds no text instead of emitting an empty `TextQuery`. |
+| `onQuerySubmit` | `null` | Makes the default bottom bar a typeable field; called on IME search. |
+| `onVoiceSearch` | `null` | Makes the mic in the default bottom bar tappable. |
 
 `CircleSearchColors` exposes every color and brush used by the gesture overlay — the scrim, the
 top/bottom bar gradients, the bottom glow, the selection stroke, and the dimming shown while
