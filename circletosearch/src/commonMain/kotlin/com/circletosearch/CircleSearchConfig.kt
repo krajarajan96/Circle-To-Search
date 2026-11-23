@@ -3,13 +3,15 @@ package com.circletosearch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import com.circletosearch.ocr.OcrProvider
 import com.circletosearch.ocr.OcrProviders
 
-// Google-ish "Circle to Search" palette: a cool blue up top, a warm yellow glow down low.
-private val DefaultLensBlue = Color(0xFF4285F4)
-private val DefaultLensYellow = Color(0xFFFBBC04)
-private val DefaultSearchBarBlack = Color(0xFF202124)
+// Brand-style palette (matches the BizBuddy app): blue chrome, yellow launch button, ink pill.
+private val DefaultBlue = Color(0xFF0070BA)
+private val DefaultDarkBlue = Color(0xFF003087)
+private val DefaultYellow = Color(0xFFFFC439)
+private val DefaultInk = Color(0xFF2C2E2F)
 private val DefaultSelectionStrokeColor = Color(0xFFFAFAFA)
 
 /** Colors used by [SelectableContent]'s gesture, scrim, and chrome. All fully customizable. */
@@ -29,30 +31,20 @@ data class CircleSearchColors(
 ) {
     companion object {
         fun defaults(): CircleSearchColors = CircleSearchColors(
-            // A light, uniform 10% tint across the center (not a harsh grey wash) so circled
-            // content stays legible, with a bit more color concentrated near the top/bottom chrome.
-            scrimBrush = Brush.verticalGradient(
-                0f to DefaultLensBlue.copy(alpha = 0.28f),
-                0.22f to Color.Black.copy(alpha = 0.10f),
-                0.78f to Color.Black.copy(alpha = 0.10f),
-                1f to DefaultLensYellow.copy(alpha = 0.08f),
-            ),
-            topBarBrush = Brush.verticalGradient(listOf(DefaultLensBlue.copy(alpha = 0.85f), Color.Transparent)),
-            bottomGlowBrush = Brush.verticalGradient(
-                listOf(Color.Transparent, DefaultLensYellow.copy(alpha = 0.16f)),
-            ),
-            searchBarColor = DefaultSearchBarBlack,
+            // No grey wash: content stays at full color; the blue chrome carries the mode change.
+            scrimBrush = SolidColor(Color.Transparent),
+            // Opaque bars read as a solid wash over the host's own app bars.
+            topBarBrush = Brush.verticalGradient(listOf(DefaultDarkBlue, DefaultBlue)),
+            bottomGlowBrush = Brush.verticalGradient(listOf(Color.Transparent, DefaultBlue, DefaultDarkBlue)),
+            searchBarColor = DefaultInk,
             contentColor = Color.White,
             topBarCloseBackgroundColor = Color.Black.copy(alpha = 0.25f),
             resultPanelColor = Color.Unspecified,
             selectionStrokeColor = DefaultSelectionStrokeColor,
-            // A touch darker than the base scrim while actively drawing, so the stroke stands out.
-            selectingDarkenBrush = Brush.verticalGradient(
-                0f to Color.Black.copy(alpha = 0.32f),
-                0.22f to Color.Black.copy(alpha = 0.10f),
-                0.78f to Color.Black.copy(alpha = 0.10f),
-                1f to Color.Black.copy(alpha = 0.32f),
-            ),
+            // A light dim while drawing so the white stroke stands out.
+            selectingDarkenBrush = SolidColor(Color.Black.copy(alpha = 0.12f)),
+            fabContainerColor = DefaultYellow,
+            fabContentColor = DefaultInk,
         )
     }
 }

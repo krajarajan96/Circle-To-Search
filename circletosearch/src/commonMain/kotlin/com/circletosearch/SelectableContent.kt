@@ -151,7 +151,7 @@ fun SelectableContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(112.dp)
                     .background(config.colors.bottomGlowBrush),
             )
         }

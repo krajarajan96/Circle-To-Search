@@ -1,6 +1,8 @@
 package com.circletosearch.sample
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +17,7 @@ private sealed interface Screen {
 
 @Composable
 fun App() {
-    MaterialTheme {
+    MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF0070BA), onPrimary = Color.White)) {
         var screen by remember { mutableStateOf<Screen>(Screen.Demo) }
 
         when (val current = screen) {
