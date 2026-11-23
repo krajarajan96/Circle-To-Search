@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.circletosearch.CircleSearchConfig
 import com.circletosearch.CircleSearchResult
 import com.circletosearch.SelectableContent
 
@@ -21,7 +22,15 @@ import com.circletosearch.SelectableContent
  */
 @Composable
 fun DemoContentScreen(onResult: (CircleSearchResult) -> Unit) {
-    SelectableContent(onResult = onResult) {
+    SelectableContent(
+        onResult = onResult,
+        config = CircleSearchConfig(
+            // Typeable search bar + tappable mic; blank OCR closes instead of returning "".
+            onQuerySubmit = { onResult(CircleSearchResult.TextQuery(it, androidx.compose.ui.graphics.ImageBitmap(1, 1))) },
+            onVoiceSearch = {},
+            resetOnEmptyText = true,
+        ),
+    ) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier.fillMaxSize().safeContentPadding().padding(24.dp),

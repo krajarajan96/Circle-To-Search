@@ -19,10 +19,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
@@ -31,6 +38,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -62,9 +72,12 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Wraps [content] with a Google-Lens-style "circle to search" gesture: a FAB toggles a
@@ -138,7 +151,7 @@ fun SelectableContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(112.dp)
                     .background(config.colors.bottomGlowBrush),
             )
         }
@@ -159,8 +172,12 @@ fun SelectableContent(
                                     controller.reset()
                                 } else {
                                     scope.launch {
-                                        val snapshot = graphicsLayer.toImageBitmap().toSoftwareImageBitmap()
-                                        val preview = cropImageBitmap(snapshot, bounds)
+                                        val snapshot = graphicsLayer.toImageBitmap()
+                                        // The hardware->software copy and crop block, so keep them
+                                        // off the main thread to avoid stalling the enter animation.
+                                        val preview = withContext(Dispatchers.Default) {
+                                            cropImageBitmap(snapshot.toSoftwareImageBitmap(), bounds)
+                                        }
                                         controller.finishSelecting(bounds, preview)
                                     }
                                 }
@@ -172,22 +189,34 @@ fun SelectableContent(
             }
         }
 
-        if (mode is SelectionMode.Idle) {
+        if (mode is SelectionMode.Idle && config.showFab) {
             FloatingActionButton(
                 onClick = { controller.startSelecting() },
-                modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(24.dp),
+                containerColor = config.colors.fabContainerColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer },
+                contentColor = config.colors.fabContentColor.takeOrElse { MaterialTheme.colorScheme.onPrimaryContainer },
+                // With host-drawn chrome, the host's own bottom bar already reserves the nav inset.
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .then(if (config.showChrome) Modifier.navigationBarsPadding() else Modifier)
+                    .padding(24.dp),
             ) {
                 Icon(Icons.Default.Search, contentDescription = config.strings.searchTitle)
             }
         }
 
-        AnimatedVisibility(
-            visible = showBottomSearchBar,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        ) {
-            config.bottomBar?.invoke() ?: SearchModeBottomBar(config)
+        if (config.showChrome) {
+            AnimatedVisibility(
+                visible = showBottomSearchBar,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
+                config.bottomBar?.invoke() ?: SearchModeBottomBar(
+                    config = config,
+                    onSearch = config.onQuerySubmit?.let { submit -> { q: String -> controller.reset(); submit(q) } },
+                    onVoiceSearch = config.onVoiceSearch,
+                )
+            }
         }
 
         AnimatedVisibility(
@@ -203,6 +232,7 @@ fun SelectableContent(
                     config = config,
                     onSearchText = { controller.beginRecognizingText() },
                     onSearchImage = { onResult(CircleSearchResult.ImageQuery(result.preview)) },
+                    padForNavigationBar = config.showChrome,
                     onClose = { controller.reset() },
                 )
 
@@ -214,10 +244,14 @@ fun SelectableContent(
                         onSearchText = {},
                         onSearchImage = {},
                         onClose = { controller.reset() },
+                        padForNavigationBar = config.showChrome,
                     )
                     LaunchedEffect(result.bounds) {
                         val text = config.ocrProvider.recognizeText(result.preview).getOrDefault("")
-                        onResult(CircleSearchResult.TextQuery(text, result.preview))
+                        // Nothing readable (e.g. a status dot): optionally close instead of
+                        // handing the host an empty query.
+                        if (text.isBlank() && config.resetOnEmptyText) controller.reset()
+                        else onResult(CircleSearchResult.TextQuery(text, result.preview))
                     }
                 }
 
@@ -227,13 +261,15 @@ fun SelectableContent(
 
         // Composed last so it stacks above the full-screen drag-capture Canvas and always
         // receives taps on the close button.
-        AnimatedVisibility(
-            visible = inSearchMode,
-            modifier = Modifier.align(Alignment.TopCenter),
-            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-        ) {
-            SearchModeTopBar(config = config, onClose = { controller.reset() })
+        if (config.showChrome) {
+            AnimatedVisibility(
+                visible = inSearchMode,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            ) {
+                SearchModeTopBar(onClose = { controller.reset() }, config = config)
+            }
         }
     }
 }
@@ -263,13 +299,22 @@ private fun DrawScope.drawSelectionPath(points: List<Offset>, strokeColor: Color
     )
 }
 
+/**
+ * The "Search" title bar shown while [SelectableContent] is in search mode. Public so a host can
+ * swap its own app bar for this when [CircleSearchConfig.showChrome] is false.
+ */
 @Composable
-private fun SearchModeTopBar(config: CircleSearchConfig, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun SearchModeTopBar(
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    config: CircleSearchConfig = CircleSearchConfig(),
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(config.colors.topBarBrush)
-            .safeDrawingPadding()
+            // Status bar only: the ime inset would balloon this bar once the keyboard is up.
+            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(horizontal = 8.dp, vertical = 8.dp),
     ) {
         Box(
@@ -280,7 +325,7 @@ private fun SearchModeTopBar(config: CircleSearchConfig, onClose: () -> Unit, mo
                 .clickable(onClick = onClose),
             contentAlignment = Alignment.Center,
         ) {
-            CloseIcon(tint = config.colors.contentColor, modifier = Modifier.size(18.dp))
+            CloseIcon(config.strings.closeDescription, tint = config.colors.contentColor, modifier = Modifier.size(18.dp))
         }
         Text(
             config.strings.searchTitle,
@@ -292,31 +337,64 @@ private fun SearchModeTopBar(config: CircleSearchConfig, onClose: () -> Unit, mo
     }
 }
 
+/**
+ * The search bar shown at the bottom while circling. With [onSearch] set it is a real text
+ * field (IME search action submits); with [onVoiceSearch] set the mic becomes tappable.
+ */
 @Composable
-private fun SearchModeBottomBar(config: CircleSearchConfig, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
-        shape = CircleShape,
-        color = config.colors.searchBarColor,
-        shadowElevation = 6.dp,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
+fun SearchModeBottomBar(
+    modifier: Modifier = Modifier,
+    config: CircleSearchConfig = CircleSearchConfig(),
+    onSearch: ((String) -> Unit)? = null,
+    onVoiceSearch: (() -> Unit)? = null,
+) {
+    var query by remember { mutableStateOf("") }
+    // Only the ime is reserved transparently; the nav-bar inset is padded inside the surface.
+    Box(modifier = modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.ime)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).padding(16.dp),
+            shape = CircleShape,
+            color = config.colors.searchBarColor,
+            shadowElevation = 6.dp,
         ) {
-            Text(
-                config.strings.bottomBarHint,
-                color = config.colors.contentColor,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(Icons.Default.Mic, contentDescription = null, tint = config.colors.contentColor, modifier = Modifier.size(22.dp))
+            Row(
+                modifier = Modifier.padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val textColor = config.colors.contentColor
+                Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+                    if (onSearch == null || query.isEmpty()) {
+                        Text(config.strings.bottomBarHint, color = textColor.copy(alpha = if (onSearch == null) 1f else 0.6f))
+                    }
+                    if (onSearch != null) {
+                        BasicTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = LocalTextStyle.current.copy(color = textColor),
+                            cursorBrush = SolidColor(textColor),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+                        )
+                    }
+                }
+                IconButton(onClick = { onVoiceSearch?.invoke() }, enabled = onVoiceSearch != null) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = config.strings.voiceSearchDescription,
+                        tint = textColor,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun CloseIcon(tint: Color, modifier: Modifier = Modifier) {
-    Icon(Icons.Default.Close, contentDescription = null, tint = tint, modifier = modifier)
+private fun CloseIcon(description: String, tint: Color, modifier: Modifier = Modifier) {
+    Icon(Icons.Default.Close, contentDescription = description, tint = tint, modifier = modifier)
 }
 
 @Composable
@@ -327,10 +405,11 @@ private fun SelectionResultPanel(
     onSearchText: () -> Unit,
     onSearchImage: () -> Unit,
     onClose: () -> Unit,
+    padForNavigationBar: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth().navigationBarsPadding(),
+        modifier = modifier.fillMaxWidth().then(if (padForNavigationBar) Modifier.navigationBarsPadding() else Modifier),
         color = config.colors.resultPanelColor.takeOrElse { MaterialTheme.colorScheme.surface },
         shadowElevation = 8.dp,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
@@ -347,14 +426,14 @@ private fun SelectionResultPanel(
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CloseIcon(tint = config.colors.contentColor, modifier = Modifier.size(16.dp))
+                    CloseIcon(config.strings.closeDescription, tint = config.colors.contentColor, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(modifier = Modifier.size(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.Image(
                     bitmap = preview,
-                    contentDescription = "Selected content",
+                    contentDescription = config.strings.selectedContentDescription,
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
                 )
                 if (isRecognizing) {
@@ -375,15 +454,18 @@ private fun SelectionResultPanel(
                     shape = CircleShape,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(config.strings.searchTextButton, maxLines = 1)
+                    val label = if (config.enableImageSearch) config.strings.searchTextButton else config.strings.searchButton
+                    Text(label, maxLines = 1)
                 }
-                Button(
-                    onClick = onSearchImage,
-                    enabled = !isRecognizing,
-                    shape = CircleShape,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(config.strings.searchImageButton, maxLines = 1)
+                if (config.enableImageSearch) {
+                    Button(
+                        onClick = onSearchImage,
+                        enabled = !isRecognizing,
+                        shape = CircleShape,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(config.strings.searchImageButton, maxLines = 1)
+                    }
                 }
             }
         }
